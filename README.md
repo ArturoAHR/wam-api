@@ -1,7 +1,5 @@
 # WAM Services API
 
-## Description
-
 Typescript REST API powered by NestJS.
 
 ## Installation
