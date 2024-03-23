@@ -20,6 +20,9 @@ async function bootstrap() {
     SwaggerModule.setup("api", app, document);
   }
 
+  //Prevents MikroORM from staying connected after the process is terminated.
+  app.enableShutdownHooks();
+
   await app.listen(3000);
 }
 bootstrap();
