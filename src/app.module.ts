@@ -4,7 +4,7 @@ import { ConfigModule } from "@nestjs/config";
 import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
 import { config } from "./config/mikro-orm.config";
-import { TestModule } from "./modules/test/test/test.module";
+import { TestModule } from "./modules/test/test.module";
 
 @Module({
   imports: [ConfigModule.forRoot(), MikroOrmModule.forRoot(config), TestModule],
