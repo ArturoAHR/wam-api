@@ -21,7 +21,9 @@
     "migration:create": "pnpm run orm migration:create --name",
     "migration:up": "pnpm run orm migration:up",
     "migration:down": "pnpm run orm migration:down",
-    "schema:drop": "pnpm run orm schema:drop --run --drop-db"
+    "schema:drop": "pnpm run orm schema:drop --run --drop-db",
+    "seeder:create": "pnpm run orm seeder:create",
+    "seeder:run": "pnpm run orm seeder:run"
   },
   "dependencies": {
     "@mikro-orm/core": "^6.1.12",
