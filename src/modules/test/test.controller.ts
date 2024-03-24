@@ -10,8 +10,9 @@ export class TestController {
   async createTest(
     @Body("name") name: string,
     @Body("age") age: number,
+    @Body("email") email: string,
   ): Promise<Test> {
-    return this.testService.createTest(name, age);
+    return this.testService.createTest(name, age, email);
   }
 
   @Get()

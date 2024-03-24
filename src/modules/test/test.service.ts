@@ -10,10 +10,11 @@ export class TestService {
     private readonly testRepository: TestRepository,
   ) {}
 
-  async createTest(name: string, age: number): Promise<Test> {
+  async createTest(name: string, age: number, email): Promise<Test> {
     const test = new Test();
     test.name = name;
     test.age = age;
+    test.email = email;
     await this.testRepository.upsert(test);
     return test;
   }
