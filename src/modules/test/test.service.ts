@@ -1,6 +1,6 @@
 import { InjectRepository } from "@mikro-orm/nestjs";
 import { Injectable } from "@nestjs/common";
-import { Test } from "./test.entity";
+import { Test } from "../entities/test.entity";
 import { TestRepository } from "./test.repository";
 
 @Injectable()

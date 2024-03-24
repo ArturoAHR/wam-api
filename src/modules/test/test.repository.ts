@@ -1,5 +1,5 @@
 import { EntityManager, EntityRepository } from "@mikro-orm/postgresql";
-import { Test } from "./test.entity";
+import { Test } from "../entities/test.entity";
 
 export class TestRepository extends EntityRepository<Test> {
   constructor(readonly em: EntityManager) {

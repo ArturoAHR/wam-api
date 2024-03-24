@@ -5,7 +5,7 @@ import {
   Property,
 } from "@mikro-orm/core";
 import { v4 } from "uuid";
-import { TestRepository } from "./test.repository";
+import { TestRepository } from "../test/test.repository";
 
 @Entity()
 export class Test {
