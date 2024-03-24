@@ -6,10 +6,8 @@ export class DatabaseSeeder extends Seeder {
   /* Note: Remember to create specialized seeders to call in this main seeder file */
   async run(em: EntityManager): Promise<void> {
     const testFactory = new TestFactory(em);
-    console.log({ testFactory });
 
-    const tests = await testFactory.createMany(10);
-    console.log({ tests });
+    await testFactory.createMany(10);
 
     em.flush();
   }
