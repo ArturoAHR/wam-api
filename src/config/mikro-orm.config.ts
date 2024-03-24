@@ -19,12 +19,14 @@ export const config: Options = {
   extensions: [Migrator, SeedManager],
 
   migrations: {
-    path: "src/database/migrations",
+    path: "dist/database/migrations",
+    pathTs: "src/database/migrations",
     fileName: (timestamp: string, name: string) => `${timestamp}-${name}`,
   },
 
   seeder: {
-    path: "src/database/seeders",
+    path: "dist/database/seeders",
+    pathTs: "src/database/seeders",
     fileName: (className: string) => `${className}.seed`,
   },
 };
