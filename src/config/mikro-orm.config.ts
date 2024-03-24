@@ -1,5 +1,6 @@
 import { Migrator } from "@mikro-orm/migrations";
 import { Options, PostgreSqlDriver } from "@mikro-orm/postgresql";
+import { SeedManager } from "@mikro-orm/seeder";
 import "dotenv/config";
 
 export const config: Options = {
@@ -15,11 +16,16 @@ export const config: Options = {
   entities: ["dist/**/*.entity.js"],
   entitiesTs: ["src/**/*.entity.ts"],
 
-  extensions: [Migrator],
+  extensions: [Migrator, SeedManager],
 
   migrations: {
     path: "src/database/migrations",
     fileName: (timestamp: string, name: string) => `${timestamp}-${name}`,
+  },
+
+  seeder: {
+    path: "src/database/seeders",
+    fileName: (className: string) => `${className}.seed`,
   },
 };
 
