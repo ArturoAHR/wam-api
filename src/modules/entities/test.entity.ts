@@ -18,5 +18,8 @@ export class Test {
   @Property()
   age: number;
 
+  @Property()
+  email: string;
+
   [EntityRepositoryType]?: TestRepository;
 }
