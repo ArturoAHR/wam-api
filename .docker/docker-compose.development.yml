@@ -21,7 +21,7 @@ services:
     ports:
       - "3000:3000"
     networks:
-      - wam-network-dev
+      - wam-api-network
     volumes:
       - ./..:/usr/app
       - /usr/app/node_modules
@@ -29,5 +29,5 @@ services:
       - database
 
 networks:
-  wam-network-dev:
+  wam-api-network:
     driver: bridge
