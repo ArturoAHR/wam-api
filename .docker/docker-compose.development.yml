@@ -1,0 +1,33 @@
+services:
+  database:
+    container_name: wam-db
+    image: postgres:latest
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=${DATABASE_NAME}
+      - POSTGRES_USER=${DATABASE_USER}
+      - POSTGRES_PASSWORD=${DATABASE_PASSWORD}
+      - PGDAATA=/var/lib/postgresql/data
+    ports:
+      - 5432:5432
+    networks:
+      - wam-network-dev
+  
+  api:
+    container_name: wam-api
+    build: 
+      context: ../
+      dockerfile: ./.docker/Dockerfile.development
+    ports:
+      - "3000:3000"
+    networks:
+      - wam-network-dev
+    volumes:
+      - ./..:/usr/app
+      - /usr/app/node_modules
+    depends_on:
+      - database
+
+networks:
+  wam-network-dev:
+    driver: bridge
