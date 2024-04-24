@@ -14,4 +14,10 @@ export const baseOrmConfig: Options = {
     pathTs: "src/database/migrations",
     fileName: (timestamp: string, name: string) => `${timestamp}-${name}`,
   },
+
+  driverOptions: {
+    connection: {
+      ssl: { rejectUnauthorized: false },
+    },
+  },
 };
