@@ -1,0 +1,53 @@
+name: Generate .env File
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        type: string
+        required: true
+
+    secrets:
+      database_host:
+        required: true
+      database_port:
+        required: true
+      database_name:
+        required: true
+      database_user:
+        required: true
+      database_password:
+        required: true
+
+      ssh_private_key:
+        required: true
+      ec2_hostname:
+        required: true
+      ec2_username:
+        required: true
+
+jobs:
+  generate-env-file:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create .env file
+        run: |
+          cat << EOF > .env
+          ENVIRONMENT=${{ inputs.environment }}
+          DATABASE_HOST=${{ secrets.database_host }}
+          DATABASE_PORT=${{ secrets.database_port }}
+          DATABASE_NAME=${{ secrets.database_name }}
+          DATABASE_USER=${{ secrets.database_user }}
+          DATABASE_PASSWORD=${{ secrets.database_password }}
+          EOF
+          cat .env
+
+      - name: Copy .env file to EC2 instance
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.ssh_private_key }}
+          EC2_HOSTNAME: ${{ secrets.ec2_hostname }}
+          EC2_USERNAME: ${{ secrets.ec2_username }}
+        run: |
+          echo "$SSH_PRIVATE_KEY" > private_key && chmod 600 private_key
+          scp -i private_key ./.env ${EC2_USERNAME}@${EC2_HOSTNAME}:~/wam-api/.env
+          rm -f private_key

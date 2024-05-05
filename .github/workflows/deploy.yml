@@ -1,0 +1,85 @@
+name: Deploy
+on: 
+  push:
+    branches: [main]
+  pull_request:
+    branches: [ develop ] # Remove once the pipeline is fully functional
+jobs:
+  deploy:
+    name: Deploy API
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: configure aws credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key:  ${{ secrets.AWS_ACCESS_KEY_SECRET }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Whitelist runner IP address
+        run: |
+          aws ec2 authorize-security-group-ingress \
+            --group-id $AWS_EC2_SECURITY_GROUP_ID \
+            --protocol tcp \
+            --port 22 \
+            --cidr ${{ steps.ip.outputs.ipv4 }}/32
+
+      - name: Add EC2 instance to known_hosts
+        env:
+          EC2_HOSTNAME: ${{ secrets.AWS_EC2_HOSTNAME }}
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H $EC2_HOSTNAME >> ~/.ssh/known_hosts
+
+      - name: Clone repository
+        uses: actions/checkout@v4 
+      
+      - name: Generate .env file
+        uses: ./.github/workflows/generate-env.yml
+        with:
+          environment: production
+          database_host: ${{ secrets.DATABASE_HOST }}
+          database_port: ${{ secrets.DATABASE_PORT }}
+          database_name: ${{ secrets.DATABASE_NAME }}
+          database_user: ${{ secrets.DATABASE_USER }}
+          database_password: ${{ secrets.DATABASE_PASSWORD }}
+          ssh_private_key: ${{ secrets.AWS_EC2_SSH_PRIVATE_KEY }}
+          ec2_hostname: ${{ secrets.AWS_EC2_HOSTNAME }}
+          ec2_username: ${{ secrets.AWS_EC2_USER_NAME }}
+
+      - name: Pull Image and Deploy
+        env:
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          AWS_EC2_SSH_PRIVATE_KEY: ${{ secrets.AWS_EC2_SSH_PRIVATE_KEY }}
+          AWS_EC2_HOSTNAME: ${{ secrets.AWS_EC2_HOSTNAME }}
+          AWS_EC2_USER_NAME: ${{ secrets.AWS_EC2_USER_NAME }}
+          AWS_ECR_URL: ${{ secrets.AWS_ECR_URL }}
+          AWS_ECR_IMAGE_NAME: ${{ secrets.AWS_ECR_IMAGE_NAME }}
+          CONTAINER_NAME: ${{ secrets.CONTAINER_NAME }}
+        run: |
+          echo "$AWS_EC2_SSH_PRIVATE_KEY" > private_key && chmod 600 private_key
+          ssh -i private_key ${AWS_EC2_USER_NAME}@${AWS_EC2_HOSTNAME} '
+            aws ecr get-login-password \ 
+              --region ${AWS_REGION} \
+            | docker login \
+              --username AWS \
+              --password-stdin ${AWS_ECR_URL}
+            docker stop wam-api
+            docker rm wam-api
+            docker pull ${AWS_ECR_URL}/${AWS_ECR_IMAGE_NAME}
+            docker run -d \
+              -p 3000:3000 \
+              --name ${CONTAINER_NAME} \
+              --env-file ~/wam-api/.env \
+              ${AWS_ECR_URL}/${AWS_ECR_IMAGE_NAME}
+          '
+
+      - name: revoke runner ip address
+        run: |
+          aws ec2 authorize-security-group-ingress \
+            --group-id $AWS_EC2_SECURITY_GROUP_ID \
+            --protocol tcp \
+            --port 22 \
+            --cidr ${{ steps.ip.outputs.ipv4 }}/32
+
