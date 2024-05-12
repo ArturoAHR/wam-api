@@ -38,6 +38,17 @@ jobs:
       - name: Clone repository
         uses: actions/checkout@v4 
       
+      - name: Push Image to Registry
+        run: |
+          echo $(aws ecr get-login-password --region ${{ secrets.AWS_REGION }}) \
+          | docker login \
+          --username AWS \
+          --password-stdin ${{ secrets.AWS_ECR_URL }}
+          
+          docker build -t wam-api .
+          docker tag ${{ secrets.AWS_ECR_IMAGE_NAME }} ${{ secrets.AWS_ECR_URL}}/${{ secrets.AWS_ECR_IMAGE_NAME }}
+          docker push ${{ secrets.AWS_ECR_URL}}/${{ secrets.AWS_ECR_IMAGE_NAME }}
+
       - name: Generate .env file
         uses: ./.github/workflows/generate-env
         with:
@@ -71,7 +82,6 @@ jobs:
           ${{ secrets.AWS_ECR_URL }}/${{ secrets.AWS_ECR_IMAGE_NAME }}
           '
           
-
       - name: revoke runner ip address
         if: always()
         run: |
