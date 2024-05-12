@@ -6,59 +6,54 @@ on:
     branches: [ develop ] # Remove once the pipeline is fully functional
 jobs:
   deploy:
+    environment: Production
     name: Deploy API
     runs-on: ubuntu-latest
 
     steps:
+      - name: Get runner machine IP
+        run: |
+          echo "GITHUB_RUNNER_IP=$(curl -s https://ipinfo.io/ip)" >> $GITHUB_ENV
+
       - name: configure aws credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key:  ${{ secrets.AWS_ACCESS_KEY_SECRET }}
-          aws-region: ${{ secrets.AWS_REGION }}
+          aws-region: ${{ secrets.AWS_REGION }} 
 
       - name: Whitelist runner IP address
         run: |
           aws ec2 authorize-security-group-ingress \
-            --group-id $AWS_EC2_SECURITY_GROUP_ID \
+            --group-id ${{ secrets.AWS_EC2_SECURITY_GROUP_ID }} \
             --protocol tcp \
             --port 22 \
-            --cidr ${{ steps.ip.outputs.ipv4 }}/32
+            --cidr ${GITHUB_RUNNER_IP}/32
 
       - name: Add EC2 instance to known_hosts
-        env:
-          EC2_HOSTNAME: ${{ secrets.AWS_EC2_HOSTNAME }}
         run: |
           mkdir -p ~/.ssh
-          ssh-keyscan -H $EC2_HOSTNAME >> ~/.ssh/known_hosts
+          ssh-keyscan -H ${{ secrets.AWS_EC2_HOSTNAME }} >> ~/.ssh/known_hosts
 
       - name: Clone repository
         uses: actions/checkout@v4 
       
       - name: Generate .env file
-        uses: ./.github/workflows/generate-env.yml
+        uses: ./.github/workflows/generate-env
         with:
           environment: production
-          database_host: ${{ secrets.DATABASE_HOST }}
-          database_port: ${{ secrets.DATABASE_PORT }}
-          database_name: ${{ secrets.DATABASE_NAME }}
-          database_user: ${{ secrets.DATABASE_USER }}
-          database_password: ${{ secrets.DATABASE_PASSWORD }}
-          ssh_private_key: ${{ secrets.AWS_EC2_SSH_PRIVATE_KEY }}
-          ec2_hostname: ${{ secrets.AWS_EC2_HOSTNAME }}
-          ec2_username: ${{ secrets.AWS_EC2_USER_NAME }}
+          database-host: ${{ secrets.DATABASE_HOST }}
+          database-port: ${{ secrets.DATABASE_PORT }}
+          database-name: ${{ secrets.DATABASE_NAME }}
+          database-user: ${{ secrets.DATABASE_USER }}
+          database-password: ${{ secrets.DATABASE_PASSWORD }}
+          aws-ec2-ssh-private-key: ${{ secrets.AWS_EC2_SSH_PRIVATE_KEY }}
+          aws-ec2-hostname: ${{ secrets.AWS_EC2_HOSTNAME }}
+          aws-ec2-user-name: ${{ secrets.AWS_EC2_USER_NAME }}
 
       - name: Pull Image and Deploy
-        env:
-          AWS_REGION: ${{ secrets.AWS_REGION }}
-          AWS_EC2_SSH_PRIVATE_KEY: ${{ secrets.AWS_EC2_SSH_PRIVATE_KEY }}
-          AWS_EC2_HOSTNAME: ${{ secrets.AWS_EC2_HOSTNAME }}
-          AWS_EC2_USER_NAME: ${{ secrets.AWS_EC2_USER_NAME }}
-          AWS_ECR_URL: ${{ secrets.AWS_ECR_URL }}
-          AWS_ECR_IMAGE_NAME: ${{ secrets.AWS_ECR_IMAGE_NAME }}
-          CONTAINER_NAME: ${{ secrets.CONTAINER_NAME }}
         run: |
-          echo "$AWS_EC2_SSH_PRIVATE_KEY" > private_key && chmod 600 private_key
+          echo "${AWS_EC2_SSH_PRIVATE_KEY}" > private_key && chmod 600 private_key
           ssh -i private_key ${AWS_EC2_USER_NAME}@${AWS_EC2_HOSTNAME} '
             aws ecr get-login-password \ 
               --region ${AWS_REGION} \
@@ -76,10 +71,11 @@ jobs:
           '
 
       - name: revoke runner ip address
+        if: always()
         run: |
-          aws ec2 authorize-security-group-ingress \
-            --group-id $AWS_EC2_SECURITY_GROUP_ID \
+          aws ec2 revoke-security-group-ingress \
+            --group-id ${{ secrets.AWS_EC2_SECURITY_GROUP_ID }} \
             --protocol tcp \
             --port 22 \
-            --cidr ${{ steps.ip.outputs.ipv4 }}/32
+            --cidr ${GITHUB_RUNNER_IP}/32
 

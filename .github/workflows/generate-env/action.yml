@@ -1,0 +1,64 @@
+name: Generate .env File
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+    
+      database-host:
+        required: true
+      database-port:
+        required: true
+      database-name:
+        required: true
+      database-user:
+        required: true
+      database-password:
+        required: true
+
+      aws-ec2-ssh-private-key:
+        required: true
+      aws-ec2-hostname:
+        required: true
+      aws-ec2-user-name:
+        required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: debug
+      shell: bash -l {0}
+      run: |
+        echo "$GITHUB_CONTEXT"
+
+    - name: Create .env file
+      shell: bash -l {0}  
+      env: 
+          ENVIRONMENT: ${{ inputs.environment }}
+          DATABASE_HOST: ${{ inputs.database-host }}
+          DATABASE_PORT: ${{ inputs.database-port }}
+          DATABASE_NAME: ${{ inputs.database-name }}
+          DATABASE_USER: ${{ inputs.database-user }}
+          DATABASE_PASSWORD: ${{ inputs.database-password }}
+      run: |
+        cat << EOF > .env
+        ENVIRONMENT=${{ inputs.environment }}
+        DATABASE_HOST=${{ inputs.database-host }}
+        DATABASE_PORT=${{ inputs.database-port }}
+        DATABASE_NAME=${{ inputs.database-name }}
+        DATABASE_USER=${{ inputs.database-user }}
+        DATABASE_PASSWORD=${{ inputs.database-password }}
+        EOF
+        cat .env
+
+    - name: Copy .env file to EC2 instance
+      shell: bash -l {0}
+      env:
+        SSH_PRIVATE_KEY: ${{ inputs.aws-ec2-ssh-private-key }}
+        EC2_HOSTNAME: ${{ inputs.aws-ec2-hostname }}
+        EC2_USERNAME: ${{ inputs.aws-ec2-user-name }}
+      run: |
+        echo "$SSH_PRIVATE_KEY" > private_key && chmod 600 private_key
+        scp -i private_key ./.env ${EC2_USERNAME}@${EC2_HOSTNAME}:~/wam-api/.env
+        rm -f private_key
