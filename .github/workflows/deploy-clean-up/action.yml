@@ -33,3 +33,9 @@ runs:
           --protocol tcp \
           --port 22 \
           --cidr ${GITHUB_RUNNER_IP}/32
+        
+    - name: Remove Docker config
+      run: |
+        rm -f /home/runner/.docker/config.json
+
+
