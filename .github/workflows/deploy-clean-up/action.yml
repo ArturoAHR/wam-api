@@ -35,6 +35,7 @@ runs:
           --cidr ${GITHUB_RUNNER_IP}/32
         
     - name: Remove Docker config
+      shell: bash -l {0}
       run: |
         rm -f /home/runner/.docker/config.json
 
