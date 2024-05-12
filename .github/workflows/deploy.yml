@@ -15,7 +15,7 @@ jobs:
         run: |
           echo "GITHUB_RUNNER_IP=$(curl -s https://ipinfo.io/ip)" >> $GITHUB_ENV
 
-      - name: configure aws credentials
+      - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -38,7 +38,7 @@ jobs:
       - name: Clone repository
         uses: actions/checkout@v4 
       
-      - name: Push Image to Registry
+      - name: Build and push image to registry
         run: |
           echo $(aws ecr get-login-password --region ${{ secrets.AWS_REGION }}) \
           | docker login \
@@ -62,7 +62,7 @@ jobs:
           aws-ec2-hostname: ${{ secrets.AWS_EC2_HOSTNAME }}
           aws-ec2-user-name: ${{ secrets.AWS_EC2_USER_NAME }}
 
-      - name: Pull Image and Deploy
+      - name: Pull image and deploy
         run: |
           echo "${{ secrets.AWS_EC2_SSH_PRIVATE_KEY }}" > private_key && chmod 600 private_key
           ssh -i private_key ${{ secrets.AWS_EC2_USER_NAME }}@${{ secrets.AWS_EC2_HOSTNAME}} '
@@ -82,12 +82,12 @@ jobs:
           ${{ secrets.AWS_ECR_URL }}/${{ secrets.AWS_ECR_IMAGE_NAME }}
           '
           
-      - name: revoke runner ip address
+      - name: Deploy clean up
         if: always()
-        run: |
-          aws ec2 revoke-security-group-ingress \
-            --group-id ${{ secrets.AWS_EC2_SECURITY_GROUP_ID }} \
-            --protocol tcp \
-            --port 22 \
-            --cidr ${GITHUB_RUNNER_IP}/32
+        uses: ./.github/workflows/deploy-clean-up
+        with:
+          aws-ec2-security-group-id: ${{ secrets.AWS_EC2_SECURITY_GROUP_ID }}
+          aws-ec2-ssh-private-key: ${{ secrets.AWS_EC2_SSH_PRIVATE_KEY }}
+          aws-ec2-hostname: ${{ secrets.AWS_EC2_HOSTNAME }}
+          aws-ec2-user-name: ${{ secrets.AWS_EC2_USER_NAME }}
 

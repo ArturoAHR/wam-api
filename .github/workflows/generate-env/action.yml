@@ -29,13 +29,6 @@ runs:
   steps:
     - name: Create .env file
       shell: bash -l {0}  
-      env: 
-          ENVIRONMENT: ${{ inputs.environment }}
-          DATABASE_HOST: ${{ inputs.database-host }}
-          DATABASE_PORT: ${{ inputs.database-port }}
-          DATABASE_NAME: ${{ inputs.database-name }}
-          DATABASE_USER: ${{ inputs.database-user }}
-          DATABASE_PASSWORD: ${{ inputs.database-password }}
       run: |
         cat << EOF > .env
         ENVIRONMENT=${{ inputs.environment }}
@@ -49,11 +42,8 @@ runs:
 
     - name: Copy .env file to EC2 instance
       shell: bash -l {0}
-      env:
-        SSH_PRIVATE_KEY: ${{ inputs.aws-ec2-ssh-private-key }}
-        EC2_HOSTNAME: ${{ inputs.aws-ec2-hostname }}
-        EC2_USERNAME: ${{ inputs.aws-ec2-user-name }}
       run: |
-        echo "$SSH_PRIVATE_KEY" > private_key && chmod 600 private_key
-        scp -i private_key ./.env ${EC2_USERNAME}@${EC2_HOSTNAME}:~/wam-api/.env
+        echo "${{ inputs.aws-ec2-ssh-private-key }}" > private_key && chmod 600 private_key
+        scp -i private_key \
+        ./.env ${{ inputs.aws-ec2-user-name }}@${{ inputs.aws-ec2-hostname }}:~/wam-api/.env
         rm -f private_key
