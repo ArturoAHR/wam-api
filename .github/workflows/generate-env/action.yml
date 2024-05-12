@@ -27,11 +27,6 @@ on:
 runs:
   using: "composite"
   steps:
-    - name: debug
-      shell: bash -l {0}
-      run: |
-        echo "$GITHUB_CONTEXT"
-
     - name: Create .env file
       shell: bash -l {0}  
       env: 
