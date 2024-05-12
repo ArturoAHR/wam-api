@@ -53,22 +53,24 @@ jobs:
 
       - name: Pull Image and Deploy
         run: |
-          echo "${AWS_EC2_SSH_PRIVATE_KEY}" > private_key && chmod 600 private_key
-          ssh -i private_key ${AWS_EC2_USER_NAME}@${AWS_EC2_HOSTNAME} '
-            aws ecr get-login-password \ 
-              --region ${AWS_REGION} \
-            | docker login \
-              --username AWS \
-              --password-stdin ${AWS_ECR_URL}
-            docker stop wam-api
-            docker rm wam-api
-            docker pull ${AWS_ECR_URL}/${AWS_ECR_IMAGE_NAME}
-            docker run -d \
-              -p 3000:3000 \
-              --name ${CONTAINER_NAME} \
-              --env-file ~/wam-api/.env \
-              ${AWS_ECR_URL}/${AWS_ECR_IMAGE_NAME}
+          echo "${{ secrets.AWS_EC2_SSH_PRIVATE_KEY }}" > private_key && chmod 600 private_key
+          ssh -i private_key ${{ secrets.AWS_EC2_USER_NAME }}@${{ secrets.AWS_EC2_HOSTNAME}} '
+          
+          echo $(aws ecr get-login-password --region ${{ secrets.AWS_REGION }}) \
+          | docker login \
+          --username AWS \
+          --password-stdin ${{ secrets.AWS_ECR_URL }}
+          
+          docker stop wam-api
+          docker rm wam-api
+          docker pull ${{ secrets.AWS_ECR_URL}}/${{ secrets.AWS_ECR_IMAGE_NAME }}
+          docker run -d \
+          -p 3000:3000 \
+          --name wam-api \
+          --env-file ~/wam-api/.env \
+          ${{ secrets.AWS_ECR_URL }}/${{ secrets.AWS_ECR_IMAGE_NAME }}
           '
+          
 
       - name: revoke runner ip address
         if: always()
