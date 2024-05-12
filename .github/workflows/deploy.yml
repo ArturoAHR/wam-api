@@ -81,9 +81,15 @@ jobs:
           --username AWS \
           --password-stdin ${{ secrets.AWS_ECR_URL }}
           
-          # Stop and remove current app container
-          docker stop wam-api
-          docker rm wam-api
+          # Check if the container is running, stop it if it is
+          if [ $(docker ps -q -f name=wam-api) ]; then
+            docker stop wam-api
+          fi
+
+          # Check if the container exists, remove it if it does
+          if [ $(docker ps -aq -f status=exited -f name=wam-api) ]; then
+            docker rm wam-api
+          fi
 
           # Pull latest app image from ECR
           docker pull ${{ secrets.AWS_ECR_URL}}/${{ secrets.AWS_ECR_IMAGE_NAME }}
