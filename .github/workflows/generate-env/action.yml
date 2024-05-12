@@ -19,10 +19,13 @@ on:
 
       aws-ec2-ssh-private-key:
         required: true
+        description: "Private key to log into the app's EC2 instance."
       aws-ec2-hostname:
         required: true
+        description: "The EC2 instance host name."
       aws-ec2-user-name:
         required: true
+        description: "The EC2 instance user."
 
 runs:
   using: "composite"

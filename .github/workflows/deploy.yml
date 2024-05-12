@@ -11,6 +11,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # Gets the runner machine IP to whitelist it later to connect to EC2.
       - name: Get runner machine IP
         run: |
           echo "GITHUB_RUNNER_IP=$(curl -s https://ipinfo.io/ip)" >> $GITHUB_ENV
@@ -22,6 +23,8 @@ jobs:
           aws-secret-access-key:  ${{ secrets.AWS_ACCESS_KEY_SECRET }}
           aws-region: ${{ secrets.AWS_REGION }} 
 
+      # Adds the runner's IP to the whitelist of the AWS EC2 security group
+      # allowing SSH connections over port 22 (standard SSH port) from the runner.
       - name: Whitelist runner IP address
         run: |
           aws ec2 authorize-security-group-ingress \
@@ -30,6 +33,8 @@ jobs:
             --port 22 \
             --cidr ${GITHUB_RUNNER_IP}/32
 
+      # Adds the EC2 instance to the list of known hosts for SSH, reducing
+      # the risk of man-in-the-middle attacks.
       - name: Add EC2 instance to known_hosts
         run: |
           mkdir -p ~/.ssh
@@ -38,18 +43,23 @@ jobs:
       - name: Clone repository
         uses: actions/checkout@v4 
       
-      - name: Build and push image to registry
-        run: |
+      - name: Log into AWS ECR
+        run: |  
           echo $(aws ecr get-login-password --region ${{ secrets.AWS_REGION }}) \
           | docker login \
           --username AWS \
           --password-stdin ${{ secrets.AWS_ECR_URL }}
-          
+
+      - name: Build app image
+        run: |
           docker build -t wam-api .
+
+      - name: Push image to registry
+        run: |
           docker tag ${{ secrets.AWS_ECR_IMAGE_NAME }} ${{ secrets.AWS_ECR_URL}}/${{ secrets.AWS_ECR_IMAGE_NAME }}
           docker push ${{ secrets.AWS_ECR_URL}}/${{ secrets.AWS_ECR_IMAGE_NAME }}
 
-      - name: Generate .env file
+      - name: Generate .env file in EC2 instance
         uses: ./.github/workflows/generate-env
         with:
           environment: production
@@ -62,19 +72,25 @@ jobs:
           aws-ec2-hostname: ${{ secrets.AWS_EC2_HOSTNAME }}
           aws-ec2-user-name: ${{ secrets.AWS_EC2_USER_NAME }}
 
-      - name: Pull image and deploy
+      - name: Pull image and deploy in EC2 instance
         run: |
           echo "${{ secrets.AWS_EC2_SSH_PRIVATE_KEY }}" > private_key && chmod 600 private_key
           ssh -i private_key ${{ secrets.AWS_EC2_USER_NAME }}@${{ secrets.AWS_EC2_HOSTNAME}} '
           
+          # Log into AWS ECR
           echo $(aws ecr get-login-password --region ${{ secrets.AWS_REGION }}) \
           | docker login \
           --username AWS \
           --password-stdin ${{ secrets.AWS_ECR_URL }}
           
+          # Stop and remove current app container
           docker stop wam-api
           docker rm wam-api
+
+          # Pull latest app image from ECR
           docker pull ${{ secrets.AWS_ECR_URL}}/${{ secrets.AWS_ECR_IMAGE_NAME }}
+
+          # Run new app image
           docker run -d \
           -p 3000:3000 \
           --name wam-api \
