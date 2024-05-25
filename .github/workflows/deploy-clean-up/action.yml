@@ -25,7 +25,7 @@ runs:
         "rm -f ~/wam-api/.env"
         rm -f private_key
 
-    - name: Revoke Runner IP Address
+    - name: Revoke runner IP Address from EC2 instance security group whitelist
       shell: bash -l {0}
       run: |
         aws ec2 revoke-security-group-ingress \
