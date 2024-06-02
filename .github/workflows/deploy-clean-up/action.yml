@@ -1,0 +1,42 @@
+name: Generate .env File
+
+on:
+  workflow_call:
+    inputs:
+      aws-ec2-security-group-id:
+        required: true
+
+      aws-ec2-ssh-private-key:
+        required: true
+      aws-ec2-hostname:
+        required: true
+      aws-ec2-user-name:
+        required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Delete generated .env file
+      shell: bash -l {0}
+      run: |
+        echo "${{ inputs.aws-ec2-ssh-private-key }}" > private_key && chmod 600 private_key
+        ssh -i private_key \
+        ${{ inputs.aws-ec2-user-name }}@${{ inputs.aws-ec2-hostname }} \
+        "rm -f ~/wam-api/.env"
+        rm -f private_key
+
+    - name: Revoke runner IP Address from EC2 instance security group whitelist
+      shell: bash -l {0}
+      run: |
+        aws ec2 revoke-security-group-ingress \
+          --group-id ${{ inputs.aws-ec2-security-group-id }} \
+          --protocol tcp \
+          --port 22 \
+          --cidr ${GITHUB_RUNNER_IP}/32
+        
+    - name: Remove Docker config
+      shell: bash -l {0}
+      run: |
+        rm -f /home/runner/.docker/config.json
+
+

@@ -1,0 +1,52 @@
+name: Generate .env File
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+    
+      database-host:
+        required: true
+      database-port:
+        required: true
+      database-name:
+        required: true
+      database-user:
+        required: true
+      database-password:
+        required: true
+
+      aws-ec2-ssh-private-key:
+        required: true
+        description: "Private key to log into the app's EC2 instance."
+      aws-ec2-hostname:
+        required: true
+        description: "The EC2 instance host name."
+      aws-ec2-user-name:
+        required: true
+        description: "The EC2 instance user."
+
+runs:
+  using: "composite"
+  steps:
+    - name: Create .env file
+      shell: bash -l {0}  
+      run: |
+        cat << EOF > .env
+        ENVIRONMENT=${{ inputs.environment }}
+        DATABASE_HOST=${{ inputs.database-host }}
+        DATABASE_PORT=${{ inputs.database-port }}
+        DATABASE_NAME=${{ inputs.database-name }}
+        DATABASE_USER=${{ inputs.database-user }}
+        DATABASE_PASSWORD=${{ inputs.database-password }}
+        EOF
+        cat .env
+
+    - name: Copy .env file to EC2 instance
+      shell: bash -l {0}
+      run: |
+        echo "${{ inputs.aws-ec2-ssh-private-key }}" > private_key && chmod 600 private_key
+        scp -i private_key \
+        ./.env ${{ inputs.aws-ec2-user-name }}@${{ inputs.aws-ec2-hostname }}:~/wam-api/.env
+        rm -f private_key
